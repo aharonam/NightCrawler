@@ -14,5 +14,9 @@
     "less-middleware": "1.0.x",
     "morgan": "~1.6.1",
     "serve-favicon": "~2.3.0"
+  },
+  "devDependencies": {
+    "jsdom": "^9.1.0",
+    "q": "^1.4.1"
   }
 }

@@ -1,29 +1,89 @@
 /**
  * Created by Aharon.Amram on 5/23/2016.
  */
-var http = require('http');
+'use strict'
 
-var crawlerService = ()=>{
+let http = require('http');
+let jsdom = require("jsdom");
+let q = require('q');
+
+class adRecord{
+    constructor(adDataString){
+        this.adDataString = adDataString;
+        this.catID = null;
+        this.subCatID = null;
+        this.file = null;
+        this.recordID = null;
+        this.adID = null;
+    }
+
+    constructAd() {
+        //show_ad('2','1','/Nadlan/salesDetails.php','NadlanID','2e319f748a9cbe0686080e419909d841ec9','644');
+        //CatID =2 , SubCatID = 1, File = Nadlan/salesDetails.php , RecordID = NadlanID, AdID = 2e319f748a9cbe0686080e419909d841ec9, height = 644, prefix
+        this.adDataString = this.adDataString.replace(''/', ').replace('"');
+        let start = this.adDataString.indexOf('(') + 1;
+        let end = this.adDataString.indexOf(')') - 1;
+        this.adDataString = this.adDataString.substring(start, end);
+        let dataParts = this.adDataString.split(',');
+        this.catID = parseInt(dataParts[0]);
+        this.subCatID = parseInt(dataParts[1]);
+        this.file = dataParts[2];
+        this.recordID = dataParts[3];
+        this.adID = dataParts[4];
+    }
+
+
+}
+
+let crawlerService = ()=>{
+    let adsCollection = [];
+
     function _getPage(url){
+        let deferred = q.defer();
+
         http.get({
             uro: url,
             method: "GET"
         }, (response) => {
             // Do stuff with response
-            var str = ''
+            let str = '';
             response.on('data', function (chunk) {
                 str += chunk;
             });
             response.on('end', function () {
-                console.debug('crawlerService');
+                deferred.resolve(str);
             });
         }).on('error', (e) => {
-            console.debug(`crawlerService.getPage - Error: ${e.message}`);
+            deferred.reject(`crawlerService.getPage - Error: ${e.message}`);
+        });
+
+        return deferred.promise;
+    }
+
+    function _processPageItems(data){
+
+    }
+
+    function _parseMainPage(url) {
+        let pageNumber = 1;
+
+        jsdom.env({
+            url: url,
+            scripts: ["http://code.jquery.com/jquery.js"],
+            done: function (err, window) {
+                let $ = window.$;
+                let rows = $('tr[id^="tr_Ad"]');
+                rows.find('td[onclick^="show_ad"]').each(function (index) {
+                    adsCollection.push(new adRecord(this.outerHTML));
+                });
+                adsCollection[0].constructAd();
+                let a = 1;
+            }
         });
     }
 
     return {
-        getPage: _getPage
+        parseMainPage: _parseMainPage
     }
 };
 

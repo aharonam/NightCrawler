@@ -7,7 +7,7 @@ var router = express.Router();
 /* GET home page. */
 router.get('/start', function(req, res, next) {
     var crawlerService = require('../services/crawlerService');
-    crawlerService.getPage('http://www.yad2.co.il/Nadlan/sales.php');
+    crawlerService.parseMainPage('http://www.yad2.co.il/Nadlan/sales.php');
     res.send('started crawling');
 });
 
