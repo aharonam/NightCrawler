@@ -115,19 +115,9 @@ let crawlerService = ()=>{
         }
 
         q.all(requests).then(function (values) {
-            
+            _constructAdData();
+            _parseAdsPage();
         })
-
-        /*while(!finished) {
-            _parseMainPage(url, pageNumber).then(function (records) {
-                pageNumber++;
-                if(records === 0){
-                    finished = true;
-                }
-            });
-        }*/
-        _constructAdData();
-        _parseAdsPage();
     }
 
     return {
