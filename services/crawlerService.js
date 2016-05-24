@@ -68,24 +68,33 @@ let crawlerService = ()=>{
     }
 
     function _parseMainPage(url, pageNumber) {
+        let deferred = q.defer();
         jsdom.env({
             url: url + '?Page=' + pageNumber,
             scripts: ["http://code.jquery.com/jquery.js"],
             done: function (err, window) {
-                let $ = window.$;
+                if(err){
+                    deferred.reject('error: ' + err);
+                }
+                let $;
+                try{
+                    $ = window.$;
+                }catch (err){
+                    deferred.reject('error: ' + err);
+                }
                 let rows = $('tr[id^="tr_Ad"]');
-                if(rows.length > 0 && pageNumber < 1000){
+                if (rows.length > 0) {
                     rows.find('td[onclick^="show_ad"]').each(function (index) {
                         adsCollection.push(new adRecord(this.outerHTML));
                     });
-                    _parseMainPage(url, pageNumber + 1);
                 }
+                deferred.resolve('records collected: ' + rows.length);
             }
         });
+        return deferred.promise;
     }
 
     function _parseAdsPage(){
-
         adsCollection.forEach(function (adValue) {
             jsdom.env({
                 url: baseUrl + adValue.recordID,
@@ -99,7 +108,24 @@ let crawlerService = ()=>{
 
     function _start(url){
         baseUrl = url;
-        _parseMainPage(url, 1);
+        let requests = [];
+
+        for(var i=1;i<100;i++){
+            requests.push(_parseMainPage(url, i));
+        }
+
+        q.all(requests).then(function (values) {
+            
+        })
+
+        /*while(!finished) {
+            _parseMainPage(url, pageNumber).then(function (records) {
+                pageNumber++;
+                if(records === 0){
+                    finished = true;
+                }
+            });
+        }*/
         _constructAdData();
         _parseAdsPage();
     }
