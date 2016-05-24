@@ -20,7 +20,7 @@ class adRecord{
     constructAd() {
         //show_ad('2','1','/Nadlan/salesDetails.php','NadlanID','2e319f748a9cbe0686080e419909d841ec9','644');
         //CatID =2 , SubCatID = 1, File = Nadlan/salesDetails.php , RecordID = NadlanID, AdID = 2e319f748a9cbe0686080e419909d841ec9, height = 644, prefix
-        this.adDataString = this.adDataString.replace(''/', ').replace('"');
+        this.adDataString = this.adDataString.replace(/'/g, '').replace('"',"");
         let start = this.adDataString.indexOf('(') + 1;
         let end = this.adDataString.indexOf(')') - 1;
         this.adDataString = this.adDataString.substring(start, end);
@@ -36,6 +36,7 @@ class adRecord{
 }
 
 let crawlerService = ()=>{
+    let baseUrl = '';
     let adsCollection = [];
 
     function _getPage(url){
@@ -60,30 +61,51 @@ let crawlerService = ()=>{
         return deferred.promise;
     }
 
-    function _processPageItems(data){
-
+    function _constructAdData() {
+        adsCollection.forEach(function (adValue) {
+            adValue.constructAd();
+        });
     }
 
-    function _parseMainPage(url) {
-        let pageNumber = 1;
-
+    function _parseMainPage(url, pageNumber) {
         jsdom.env({
-            url: url,
+            url: url + '?Page=' + pageNumber,
             scripts: ["http://code.jquery.com/jquery.js"],
             done: function (err, window) {
                 let $ = window.$;
                 let rows = $('tr[id^="tr_Ad"]');
-                rows.find('td[onclick^="show_ad"]').each(function (index) {
-                    adsCollection.push(new adRecord(this.outerHTML));
-                });
-                adsCollection[0].constructAd();
-                let a = 1;
+                if(rows.length > 0 && pageNumber < 1000){
+                    rows.find('td[onclick^="show_ad"]').each(function (index) {
+                        adsCollection.push(new adRecord(this.outerHTML));
+                    });
+                    _parseMainPage(url, pageNumber + 1);
+                }
             }
         });
     }
 
+    function _parseAdsPage(){
+
+        adsCollection.forEach(function (adValue) {
+            jsdom.env({
+                url: baseUrl + adValue.recordID,
+                scripts: ["http://code.jquery.com/jquery.js"],
+                done: function (err, window) {
+                    //TO DO: parse  ad page
+                }
+            });
+        });
+    }
+
+    function _start(url){
+        baseUrl = url;
+        _parseMainPage(url, 1);
+        _constructAdData();
+        _parseAdsPage();
+    }
+
     return {
-        parseMainPage: _parseMainPage
+        start: _start
     }
 };
 
